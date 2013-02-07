@@ -246,15 +246,18 @@
                     newMultiplier = (parentHeight / $inner.height()).toFixed(precision);
                     $inner.css("font-size", newMultiplier + "em");
                 }
+                
+                // Add the class slabtextdone to set a display:block on the child spans
+                // and avoid styling & layout issues associated with inline-block
+                $this.addClass("slabbedtextdone");
+                
+                // Apply final centering, if necessary
+                if(hCenter)
+                    $inner.css("text-align", 'center');
                 if(constrainHeight && vCenter) {
                     var topPad = ((parentHeight-$inner.height())/2).toFixed(precision);
                     $inner.css("position", 'relative').css("top", topPad + "px");
                 }
-                if(hCenter)
-                    $inner.css("text-align", 'center');
-                // Add the class slabtextdone to set a display:block on the child spans
-                // and avoid styling & layout issues associated with inline-block
-                $this.addClass("slabbedtextdone");
             }
 
             // Immediate resize
