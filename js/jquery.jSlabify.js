@@ -4,6 +4,10 @@
     $.fn.jSlabify = function(options) {
     
         var settings = {
+            //target the container's font size, regardless of height
+            "targetFont"            : false,
+            //when targeted by font, enlarge base size by this multiplier
+            "fontZoom"              : 1,
             // The ratio between container width and ideal height
             "boxRatio"              : 1,
             // is the container height fixed in the css?
@@ -47,6 +51,8 @@
                 words               = keepSpans ? [] : String($.trim($this.text())).replace(/\s{2,}/g, " ").split(" "),
                 origFontSize        = null,
                 idealCharPerLine    = null,
+                targetFont          = settings.targetFont,
+                fontZoom            = settings.fontZoom,
                 boxRatio            = settings.boxRatio,
                 fixedHeight         = settings.fixedHeight,
                 borderBox           = settings.borderBox,
@@ -68,14 +74,16 @@
             
             // Calculates the pixel equivalent of 1em within the current header
             var grabFontInfo = function() {
-                var theString = words.join(" "),
-                    content   = (theString.length > 0)?theString:"&nbsp;";
-                    dummy     = jQuery('<div style="display:none;font-size:1em;margin:0;padding:0;height:auto;line-height:1;border:0;white-space:nowrap;">'+content+'</div>').appendTo($this),
-                    emW       = dummy.width(),
-                    emH       = dummy.height(),
-                    ratio     = (emH == 0)?1:emW/emH;
+                var theString     = words.join(" "),
+                    contentLength = theString.length,
+                    content       = (theString.length > 0)?theString:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-'.,?!&";
+                    dummy         = jQuery('<div style="display:none;font-size:1em;margin:0;padding:0;height:auto;line-height:1;border:0;white-space:nowrap;">'+content+'</div>').appendTo($this),
+                    emW           = dummy.width(),
+                    emH           = dummy.height(),
+                    ratio         = (emH == 0)?1:emW/emH,
+                    charRatio     = ratio/content.length;
                 dummy.remove();
-                return [emW, emH, ratio, theString.length];
+                return [emW, emH, ratio, content.length, charRatio];
             };             
             
             // The original slabtype algorithm was written by Eric Loyer:
@@ -104,20 +112,25 @@
                 
                 
                 fontInfo = grabFontInfo();
-                fs       = fontInfo[1];
                 // If the parent containers font-size has changed or the "forceNewCharCount" option is true (the default),
                 // then recalculate the "characters per line" count and re-render the inner spans
                 // Setting "forceNewCharCount" to false will save CPU cycles...
                 if(!keepSpans && (forceNewCharCount || fs != origFontSize)) {
                             
-                    origFontSize = fs;
+                    origFontSize = fontInfo[1];
 
-                    var textLength      = fontInfo[3],
-                        textRatio       = fontInfo[2],
-                        boxRatio        = parentWidth / parentHeight,
-                        lineCount       = Math.round(Math.sqrt(textRatio/boxRatio)),
-                        newCharPerLine  = Math.min(60, Math.max(Math.round(textLength/lineCount), 1)),
-                        wordIndex       = 0,
+                    // legacy slabtext support
+                    if(targetFont) {
+                        var charRatio       = fontInfo[4],
+                            newCharPerLine  = Math.min(60, Math.floor(parentWidth / (origFontSize * charRatio * fontZoom)));
+                    } else {
+                        var textLength      = fontInfo[3],
+                            textRatio       = fontInfo[2],
+                            boxRatio        = parentWidth / parentHeight,
+                            lineCount       = Math.round(Math.sqrt(textRatio/boxRatio)),
+                            newCharPerLine  = Math.min(60, Math.max(Math.round(textLength/lineCount), 1));
+                    }
+                    var wordIndex       = 0,
                         lineText        = [],
                         counter         = 0,
                         preText         = "",
@@ -195,7 +208,7 @@
                 } else {
                     // We only need the font-size for the resize-to-fit functionality
                     // if not injecting the spans 
-                    origFontSize = fs;
+                    origFontSize = fontInfo[1];
                 };
                 
                 var contentsHeight = 0;
@@ -233,11 +246,11 @@
                     };
                 });
                 var newMultiplier = 1;
-                if(contentsHeight > parentHeight) {
+                if(!targetFont && (contentsHeight > parentHeight)) {
                     newMultiplier = (parentHeight / contentsHeight).toFixed(precision);
                     $this.css("font-size", newMultiplier + "em");
                 }
-                if(borderBox)
+                if(!targetFont && borderBox)
                     $this.css("padding", ((parentHeight-(contentsHeight*newMultiplier))/2) + "px 0");
                 
                 // Add the class slabtextdone to set a display:block on the child spans
