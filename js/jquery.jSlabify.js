@@ -1,13 +1,12 @@
 /*! jQuery jSlabify plugin v1.0 MIT/GPL2 @gschoppe */
-(function( $ ){  
-        
+(function( $ ){
     $.fn.jSlabify = function(options) {
-    
         var settings = {
             //target the container's font size, regardless of height
             "targetFont"            : false,
             //when targeted by font, enlarge base size by this multiplier
             "fontZoom"              : 1,
+            "constrainHeight"       : false,
             // The ratio between container width and ideal height
             "boxRatio"              : 1,
             // is the container height fixed in the css?
@@ -41,10 +40,8 @@
         $("body").addClass("slabtexted");
             
         return this.each(function(){
-            
-            if(options) {
-                    $.extend(settings, options);
-            };
+            if(options)
+                $.extend(settings, options);
             
             var $this               = $(this),
                 keepSpans           = $("span.slabtext", $this).length,
@@ -53,6 +50,7 @@
                 idealCharPerLine    = null,
                 targetFont          = settings.targetFont,
                 fontZoom            = settings.fontZoom,
+                constrainHeight     = settings.constrainHeight,
                 boxRatio            = settings.boxRatio,
                 fixedHeight         = settings.fixedHeight,
                 borderBox           = settings.borderBox,
@@ -68,9 +66,8 @@
                 headLink            = $this.find("a:first").attr("href") || $this.attr("href"),
                 linkTitle           = headLink ? $this.find("a:first").attr("title") : "";
             
-            if(!keepSpans && minCharsPerLine && words.join(" ").length < minCharsPerLine) {
+            if(!keepSpans && minCharsPerLine && words.join(" ").length < minCharsPerLine)
                 return;
-            };
             
             // Calculates the pixel equivalent of 1em within the current header
             var grabFontInfo = function() {
@@ -84,14 +81,16 @@
                     charRatio     = ratio/content.length;
                 dummy.remove();
                 return [emW, emH, ratio, content.length, charRatio];
-            };             
+            };
             
             // The original slabtype algorithm was written by Eric Loyer:
             // http://erikloyer.com/index.php/blog/the_slabtype_algorithm_part_1_background/
             // The optimal line length calculation has been totally replaced by a geometric method,
             // written by Gregory Schoppe
             var resizeSlabs = function resizeSlabs() {
-                    
+                //clear borderbox padding before getting height
+                if(constrainHeight && borderBox)
+                    $this.css("padding", 0 + "px");
                 // Cache the parent containers width       
                 var parentWidth = $this.width(),
                     parentHeight = (fixedHeight)?$this.height():parentWidth/boxRatio,
@@ -108,7 +107,7 @@
                     // and to reset the font-size to 1em (inherit won't work in IE6/7)
                     $this.addClass("slabtextinactive");
                     return;
-                };
+                }
                 
                 
                 fontInfo = grabFontInfo();
@@ -156,8 +155,8 @@
                                 postText += words[wordIndex] + " ";
                                 if(++wordIndex >= words.length) {
                                     break;
-                                };
-                            };
+                                }
+                            }
 
                             // This bit hacks in a minimum characters per line test
                             // on the last line
@@ -167,8 +166,8 @@
                                     postText += slice;
                                     preText = postText;
                                     wordIndex = words.length + 2;
-                                };
-                            };
+                                }
+                            }
 
                             // calculate the character difference between the two strings and the
                             // ideal number of characters per line
@@ -184,35 +183,33 @@
                             // otherwise, use the longer string for the line
                             } else {
                                 finalText = postText;
-                            };
+                            }
 
                             // HTML-escape the text
                             finalText = $('<div/>').text(finalText).html()
 
                             // Wrap ampersands in spans with class `amp` for specific styling
-                            if(settings.wrapAmpersand) {
+                            if(settings.wrapAmpersand)
                                 finalText = finalText.replace(/&amp;/g, '<span class="amp">&amp;</span>');
-                            };
 
                             finalText = $.trim(finalText)
 
                             lineText.push('<span class="slabtext">' + finalText + "</span>");
-                        };
+                        }
                                     
                         $this.html(lineText.join(" "));
                         // If we have a headLink, add it back just inside our target, around all the slabText spans
-                        if(headLink) {
+                        if(headLink)
                             $this.wrapInner('<a href="' + headLink + '" ' + (linkTitle ? 'title="' + linkTitle + '" ' : '') + '/>');
-                        };
-                    };        
+                    }        
                 } else {
                     // We only need the font-size for the resize-to-fit functionality
                     // if not injecting the spans 
                     origFontSize = fontInfo[1];
-                };
+                }
                 
                 var contentsHeight = 0;
-                $this.css("padding", 0);
+                $this.css("font-size", 1 + "em");
                 $("span.slabtext", $this).each(function() {
                     var $span       = $(this),
                         // the .text method appears as fast as using custom -data attributes in this case
@@ -222,13 +219,9 @@
                         ratio,
                         newSize;
                     
-                    if(postTweak) {   
-                        $span.css({
-                            "word-spacing":0, 
-                            "letter-spacing":0
-                            });
-                    };
-                    $this.css("font-size", 1 + "em");
+                    if(postTweak)
+                        $span.css({"word-spacing":0, "letter-spacing":0});
+                    
                     $span.css("font-size", 1 + "em");
                     ratio    = parentWidth / $span.width();
                     newSize = (Math.min((origFontSize * ratio), settings.maxFontSize)/origFontSize).toFixed(precision);
@@ -241,22 +234,21 @@
                     // A "dumb" tweak in the blind hope that the browser will
                     // resize the text to better fit the available space.
                     // Better "dumb" and fast...
-                    if(diff) {
+                    if(diff)
                         $span.css((wordSpacing ? 'word' : 'letter') + '-spacing', (diff / (wordSpacing ? innerText.split(" ").length - 1 : innerText.length)).toFixed(precision) + "px");
-                    };
                 });
                 var newMultiplier = 1;
-                if(!targetFont && (contentsHeight > parentHeight)) {
+                if(constrainHeight && (contentsHeight > parentHeight)) {
                     newMultiplier = (parentHeight / contentsHeight).toFixed(precision);
                     $this.css("font-size", newMultiplier + "em");
                 }
-                if(!targetFont && borderBox)
-                    $this.css("padding", ((parentHeight-(contentsHeight*newMultiplier))/2) + "px 0");
+                if(constrainHeight && borderBox)
+                    $this.css("padding", ((parentHeight-(contentsHeight*newMultiplier))/2).toFixed(precision) + "px 0");
                 
                 // Add the class slabtextdone to set a display:block on the child spans
                 // and avoid styling & layout issues associated with inline-block
                 $this.addClass("slabtextdone");
-            };
+            }
 
             // Immediate resize
             resizeSlabs();     
@@ -265,16 +257,15 @@
                 $(window).resize(function() {
                     // Only run the resize code if the viewport width has changed.
                     // we ignore the viewport height as it will be constantly changing.
-                    if($(window).width() == viewportWidth) {
+                    if($(window).width() == viewportWidth)
                         return;
-                    };
                                     
                     viewportWidth = $(window).width();
                                     
                     clearTimeout(resizeThrottle);
                     resizeThrottle = setTimeout(resizeSlabs, resizeThrottleTime);
                 });
-            };        
+            }        
         });
-    };
+    }
 })(jQuery);
