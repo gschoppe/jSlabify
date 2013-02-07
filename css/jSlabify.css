@@ -1,9 +1,9 @@
-.slabtexted .slabtext {
+.slabified .slabbedtext {
     display:-moz-inline-box;
     display:inline-block;
     white-space:nowrap;
 }
-.slabtextinactive .slabtext {
+.slabbedtextinactive .slabbedtext {
     display:inline;
     white-space:normal;
     font-size:1em !important;
@@ -12,6 +12,6 @@
     *letter-spacing:0 !important;
     *word-spacing:0 !important;
 }
-.slabtextdone .slabtext {
+.slabbedtextdone .slabbedtext {
     display:block;
 }
