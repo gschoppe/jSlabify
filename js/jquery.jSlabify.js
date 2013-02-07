@@ -4,12 +4,9 @@
     $.fn.jSlabify = function(options) {
     
         var settings = {
-            // The ratio used when calculating the characters per line 
-            // (parent width / (font-size * fontRatio)). 
-            "fontRatio"             : 0.472,
-            // The ratio between ideal width and ideal height
+            // The ratio between container width and ideal height
             "boxRatio"              : 1,
-            // is the height fixed in css?
+            // is the container height fixed in the css?
             "fixedHeight"           : false,
             // center vertically with border-box padding
             "borderBox"             : false,
@@ -50,7 +47,6 @@
                 words               = keepSpans ? [] : String($.trim($this.text())).replace(/\s{2,}/g, " ").split(" "),
                 origFontSize        = null,
                 idealCharPerLine    = null,
-                fontRatio           = settings.fontRatio,
                 boxRatio            = settings.boxRatio,
                 fixedHeight         = settings.fixedHeight,
                 borderBox           = settings.borderBox,
@@ -71,11 +67,15 @@
             };
             
             // Calculates the pixel equivalent of 1em within the current header
-            var grabPixelFontSize = function() {
-                var dummy = jQuery('<div style="display:none;font-size:1em;margin:0;padding:0;height:auto;line-height:1;border:0;">&nbsp;</div>').appendTo($this),
-                    emH   = dummy.height();
+            var grabFontInfo = function() {
+                var theString = words.join(" "),
+                    content   = (theString.length > 0)?theString:"&nbsp;";
+                    dummy     = jQuery('<div style="display:none;font-size:1em;margin:0;padding:0;height:auto;line-height:1;border:0;white-space:nowrap;">'+content+'</div>').appendTo($this),
+                    emW       = dummy.width(),
+                    emH       = dummy.height(),
+                    ratio     = (emH == 0)?1:emW/emH;
                 dummy.remove();
-                return emH;
+                return [emW, emH, ratio, theString.length];
             };             
             
             // The original slabtype algorithm was written by Eric Loyer:
@@ -87,8 +87,9 @@
                 // Cache the parent containers width       
                 var parentWidth = $this.width(),
                     parentHeight = (fixedHeight)?$this.height():parentWidth/boxRatio,
+                    fontInfo,
                     fs;
-                                    
+                
                 // Remove the slabtextdone and slabtextinactive classnames to enable the inline-block shrink-wrap effect
                 $this.removeClass("slabtextdone slabtextinactive");
                 
@@ -101,7 +102,9 @@
                     return;
                 };
                 
-                fs = grabPixelFontSize(); 
+                
+                fontInfo = grabFontInfo();
+                fs       = fontInfo[1];
                 // If the parent containers font-size has changed or the "forceNewCharCount" option is true (the default),
                 // then recalculate the "characters per line" count and re-render the inner spans
                 // Setting "forceNewCharCount" to false will save CPU cycles...
@@ -109,8 +112,8 @@
                             
                     origFontSize = fs;
 
-                    var textLength      = words.join(" ").length,
-                        textRatio       = textLength * fontRatio,
+                    var textLength      = fontInfo[3],
+                        textRatio       = fontInfo[2],
                         boxRatio        = parentWidth / parentHeight,
                         lineCount       = Math.round(Math.sqrt(textRatio/boxRatio)),
                         newCharPerLine  = Math.min(60, Math.max(Math.round(textLength/lineCount), 1)),
@@ -196,7 +199,7 @@
                 };
                 
                 var contentsHeight = 0;
-                
+                $this.css("padding", 0);
                 $("span.slabtext", $this).each(function() {
                     var $span       = $(this),
                         // the .text method appears as fast as using custom -data attributes in this case
@@ -204,7 +207,7 @@
                         wordSpacing = innerText.split(" ").length > 1,
                         diff,
                         ratio,
-                        fontSize;
+                        newSize;
                     
                     if(postTweak) {   
                         $span.css({
@@ -215,7 +218,7 @@
                     $this.css("font-size", 1 + "em");
                     $span.css("font-size", 1 + "em");
                     ratio    = parentWidth / $span.width();
-                    var newSize = (Math.min((origFontSize * ratio), settings.maxFontSize)/origFontSize).toFixed(precision);
+                    newSize = (Math.min((origFontSize * ratio), settings.maxFontSize)/origFontSize).toFixed(precision);
                     $span.css("font-size", newSize + "em");
                     contentsHeight += $span.height();
                     
@@ -229,7 +232,6 @@
                         $span.css((wordSpacing ? 'word' : 'letter') + '-spacing', (diff / (wordSpacing ? innerText.split(" ").length - 1 : innerText.length)).toFixed(precision) + "px");
                     };
                 });
-                
                 var newMultiplier = 1;
                 if(contentsHeight > parentHeight) {
                     newMultiplier = (parentHeight / contentsHeight).toFixed(precision);
