@@ -6,13 +6,14 @@
             "targetFont"            : false,
             //when targeted by font, enlarge base size by this multiplier
             "fontZoom"              : 1,
+            //If the actual height is greater than the box size (as defined by css or ratio), do we resize?
             "constrainHeight"       : false,
             // The ratio between container width and ideal height
             "boxRatio"              : 1,
             // is the container height fixed in the css?
             "fixedHeight"           : false,
             // center vertically with border-box padding
-            "borderBox"             : false,
+            "vCenter"               : false,
             // Always recalculate the characters per line, not just when the 
             // font-size changes? Defaults to true (CPU intensive)
             "forceNewCharCount"     : true,
@@ -37,14 +38,14 @@
         
         // Add the slabtexted classname to the body to initiate the styling of
         // the injected spans
-        $("body").addClass("slabtexted");
+        $("body").addClass("slabified");
             
         return this.each(function(){
             if(options)
                 $.extend(settings, options);
             
             var $this               = $(this),
-                keepSpans           = $("span.slabtext", $this).length,
+                keepSpans           = $("span.slabbedtext", $this).length,
                 words               = keepSpans ? [] : String($.trim($this.text())).replace(/\s{2,}/g, " ").split(" "),
                 origFontSize        = null,
                 idealCharPerLine    = null,
@@ -53,7 +54,7 @@
                 constrainHeight     = settings.constrainHeight,
                 boxRatio            = settings.boxRatio,
                 fixedHeight         = settings.fixedHeight,
-                borderBox           = settings.borderBox,
+                vCenter             = settings.vcenter,
                 forceNewCharCount   = settings.forceNewCharCount,
                 headerBreakpoint    = settings.headerBreakpoint,
                 viewportBreakpoint  = settings.viewportBreakpoint,
@@ -86,11 +87,8 @@
             // The original slabtype algorithm was written by Eric Loyer:
             // http://erikloyer.com/index.php/blog/the_slabtype_algorithm_part_1_background/
             // The optimal line length calculation has been totally replaced by a geometric method,
-            // written by Gregory Schoppe
+            // written by Gregory Schoppe and a font-size-based method, written by Brian McAllister
             var resizeSlabs = function resizeSlabs() {
-                //clear borderbox padding before getting height
-                if(constrainHeight && borderBox)
-                    $this.css("padding", 0 + "px");
                 // Cache the parent containers width       
                 var parentWidth = $this.width(),
                     parentHeight = (fixedHeight)?$this.height():parentWidth/boxRatio,
@@ -98,14 +96,14 @@
                     fs;
                 
                 // Remove the slabtextdone and slabtextinactive classnames to enable the inline-block shrink-wrap effect
-                $this.removeClass("slabtextdone slabtextinactive");
+                $this.removeClass("slabbedtextdone slabbedtextinactive");
                 
                 if(viewportBreakpoint && viewportBreakpoint > viewportWidth
                    ||
                    headerBreakpoint && headerBreakpoint > parentWidth) {
                     // Add the slabtextinactive classname to set the spans as inline
                     // and to reset the font-size to 1em (inherit won't work in IE6/7)
-                    $this.addClass("slabtextinactive");
+                    $this.addClass("slabbedtextinactive");
                     return;
                 }
                 
@@ -194,7 +192,7 @@
 
                             finalText = $.trim(finalText)
 
-                            lineText.push('<span class="slabtext">' + finalText + "</span>");
+                            lineText.push('<span class="slabbedtext">' + finalText + "</span>");
                         }
                                     
                         $this.html(lineText.join(" "));
@@ -208,9 +206,13 @@
                     origFontSize = fontInfo[1];
                 }
                 
-                var contentsHeight = 0;
+                //create wrapper div for centering, if none exists
+                if(!($this.has("div.innerslabwrap").length>0)) {
+                    $this.wrapInner('<div class="innerslabwrap" />');
+                }
+                
                 $this.css("font-size", 1 + "em");
-                $("span.slabtext", $this).each(function() {
+                $("span.slabbedtext", $this).each(function() {
                     var $span       = $(this),
                         // the .text method appears as fast as using custom -data attributes in this case
                         innerText   = $span.text(),
@@ -226,7 +228,6 @@
                     ratio    = parentWidth / $span.width();
                     newSize = (Math.min((origFontSize * ratio), settings.maxFontSize)/origFontSize).toFixed(precision);
                     $span.css("font-size", newSize + "em");
-                    contentsHeight += $span.height();
                     
                     // Do we still have space to try to fill or crop
                     diff = !!postTweak ? parentWidth - $span.width() : false;
@@ -238,16 +239,16 @@
                         $span.css((wordSpacing ? 'word' : 'letter') + '-spacing', (diff / (wordSpacing ? innerText.split(" ").length - 1 : innerText.length)).toFixed(precision) + "px");
                 });
                 var newMultiplier = 1;
-                if(constrainHeight && (contentsHeight > parentHeight)) {
-                    newMultiplier = (parentHeight / contentsHeight).toFixed(precision);
+                var $inner = $this.children("div.innerslabwrap");
+                if(constrainHeight && ($inner.height() > parentHeight)) {
+                    newMultiplier = (parentHeight / $inner.height()).toFixed(precision);
                     $this.css("font-size", newMultiplier + "em");
                 }
-                if(constrainHeight && borderBox)
-                    $this.css("padding", ((parentHeight-(contentsHeight*newMultiplier))/2).toFixed(precision) + "px 0");
-                
+                if(constrainHeight && vCenter)
+                    $inner.css("margin-top", ((parentHeight-$inner.height())/2).toFixed(precision) + "px");
                 // Add the class slabtextdone to set a display:block on the child spans
                 // and avoid styling & layout issues associated with inline-block
-                $this.addClass("slabtextdone");
+                $this.addClass("slabbedtextdone");
             }
 
             // Immediate resize

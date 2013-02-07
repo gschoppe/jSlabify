@@ -22,12 +22,12 @@
         box-sizing: border-box;         /* Opera/IE 8+ */
     }
 
-    .slabtexted .slabtext {
+    .slabified .slabbedtext {
         display:-moz-inline-box;
         display:inline-block;
         white-space:nowrap;
     }
-    .slabtextinactive .slabtext {
+    .slabbedtextinactive .slabbedtext {
         display:inline;
         white-space:normal;
         font-size:1em !important;
@@ -36,7 +36,7 @@
         *letter-spacing:0 !important;
         *word-spacing:0 !important;
     }
-    .slabtextdone .slabtext {
+    .slabbedtextdone .slabbedtext {
         display:block;
     }
   </style>
@@ -48,8 +48,8 @@ $(window).load(function(){
 $(document).ready( function() {
     $(".slabIt").jSlabify({
         constrainHeight: true,
-        fixedHeight: true,
-        borderBox  : true
+        fixedHeight    : true,
+        vCenter        : true
     });
 });
 });//]]>  
