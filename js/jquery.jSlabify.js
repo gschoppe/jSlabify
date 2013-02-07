@@ -9,10 +9,12 @@
             //If the actual height is greater than the box size (as defined by css or ratio), do we resize?
             "constrainHeight"       : false,
             // The ratio between container width and ideal height
-            "boxRatio"              : 1,
+            "slabRatio"              : 1,
             // is the container height fixed in the css?
             "fixedHeight"           : false,
-            // center vertically with border-box padding
+            // force center horizontally with text-align on the wrapped div
+            "hCenter"               : false,
+            // center vertically with a top position on the wrapped div
             "vCenter"               : false,
             // Always recalculate the characters per line, not just when the 
             // font-size changes? Defaults to true (CPU intensive)
@@ -52,9 +54,10 @@
                 targetFont          = settings.targetFont,
                 fontZoom            = settings.fontZoom,
                 constrainHeight     = settings.constrainHeight,
-                boxRatio            = settings.boxRatio,
+                slabRatio           = settings.slabRatio,
                 fixedHeight         = settings.fixedHeight,
-                vCenter             = settings.vcenter,
+                hCenter             = settings.hCenter,
+                vCenter             = settings.vCenter,
                 forceNewCharCount   = settings.forceNewCharCount,
                 headerBreakpoint    = settings.headerBreakpoint,
                 viewportBreakpoint  = settings.viewportBreakpoint,
@@ -91,7 +94,7 @@
             var resizeSlabs = function resizeSlabs() {
                 // Cache the parent containers width       
                 var parentWidth = $this.width(),
-                    parentHeight = (fixedHeight)?$this.height():parentWidth/boxRatio,
+                    parentHeight = (fixedHeight)?$this.height():parentWidth/slabRatio,
                     fontInfo,
                     fs;
                 
@@ -210,8 +213,8 @@
                 if(!($this.has("div.innerslabwrap").length>0)) {
                     $this.wrapInner('<div class="innerslabwrap" />');
                 }
-                
-                $this.css("font-size", 1 + "em");
+                var $inner = $this.children("div.innerslabwrap");
+                $inner.css("font-size", 1 + "em");
                 $("span.slabbedtext", $this).each(function() {
                     var $span       = $(this),
                         // the .text method appears as fast as using custom -data attributes in this case
@@ -239,13 +242,16 @@
                         $span.css((wordSpacing ? 'word' : 'letter') + '-spacing', (diff / (wordSpacing ? innerText.split(" ").length - 1 : innerText.length)).toFixed(precision) + "px");
                 });
                 var newMultiplier = 1;
-                var $inner = $this.children("div.innerslabwrap");
                 if(constrainHeight && ($inner.height() > parentHeight)) {
                     newMultiplier = (parentHeight / $inner.height()).toFixed(precision);
-                    $this.css("font-size", newMultiplier + "em");
+                    $inner.css("font-size", newMultiplier + "em");
                 }
-                if(constrainHeight && vCenter)
-                    $inner.css("margin-top", ((parentHeight-$inner.height())/2).toFixed(precision) + "px");
+                if(constrainHeight && vCenter) {
+                    var topPad = ((parentHeight-$inner.height())/2).toFixed(precision);
+                    $inner.css("position", 'relative').css("top", topPad + "px");
+                }
+                if(hCenter)
+                    $inner.css("text-align", 'center');
                 // Add the class slabtextdone to set a display:block on the child spans
                 // and avoid styling & layout issues associated with inline-block
                 $this.addClass("slabbedtextdone");

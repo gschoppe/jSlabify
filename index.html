@@ -92,7 +92,7 @@
             font-style:italic;
             font-weight:lighter;
         }
-        /* Set font-sizes for the headings to be given the slabText treatment */
+        /* Set font-sizes for the headings to be given the jSlabify treatment */
         h1 {
             text-align:left;
             font-family:'LeagueGothicRegular', "Impact", Charcoal, Arial Black, Gadget, Sans serif;
@@ -112,15 +112,15 @@
             font-size: 25px;
         }
         /* Adjust the line-height for all headlines that have been given the
-           slabtext treatment. Use a unitless line-height to stop sillyness */
-        .slabtexted h1 {
+           jSlabify treatment. Use a unitless line-height to stop sillyness */
+        .slabified h1 {
             line-height:.9;
         }
         /* Target specific lines in the preset Studio One demo */
-        .slabtexted #studio-one span:nth-child(2) {
+        .slabified #studio-one span:nth-child(2) {
             line-height:.8;
         }
-        .slabtexted #studio-one span:nth-child(3) {
+        .slabified #studio-one span:nth-child(3) {
             line-height:1.1;
         }
         /* Fun with media queries - resize your browser to view changes. */
@@ -165,12 +165,25 @@
 </head>
 <body>
   <h1 id="h1">jSlabify &ndash; a jQuery plugin for creating slabbed typography</h1>                
-  <p>I've been wanting to attempt a port of Erik Loyer's <a href="http://erikloyer.com/index.php/blog/the_slabtype_algorithm_part_1_background/">slabtype algorithm</a> for quite some time now and seeing Paravel&#8217;s <a href="http://fittextjs.com/">fittext</a> jQuery plugin, in combination with a gloriously hassle-free lunch hour gave me the impetus to attempt it. This is the result &ndash; resize the browser viewport to see the effect in action.</p>        
-  <h2 id="h2">So what does the script do again?</h2>
-  <p>Put simply, the script splits headlines into rows before resizing each row to fill the available horizontal space. The ideal number of characters to set on each row is calculated by dividing the available width by the pixel font-size &ndash; the script then uses this <em>ideal character count</em> to split the headline into word combinations that are displayed as separate rows of text. Many, many <a href="#h12">more examples</a> can be viewed further down the page.</p>
+  <p>
+    I ran across Brian McAllister's <a href="http://www.frequency-decoder.com/demo/slabText/">slabtext</a> jQuery plugin,
+    and was immediately taken by the concept of algorithmically slabbing text.  That, of course, led me to Erik Loyer's
+    <a href="http://erikloyer.com/index.php/blog/the_slabtype_algorithm_part_1_background/">slabtype algorithm</a>.
+    After taking a close look at the algorithm, It seemed a bit complicated to me.  The algorithm first creates an optimal
+    slab, based on the width of the box and the font-size of the container, then resizes the result to match the height of
+    the container.  The end result has the potential to create very sub-optimal slabs, when height is a factor.
+  </p>
+  <p>
+    I redesigned the slabbing algorithm, at the cost of a few CPU cycles, to produce a much more optimized slab, when the
+    container height is known.  Rather than basing the slabbing algorithm on font-size and a magic ratio, jSlabify bases its
+    slabs on comparing proportions.  It renders the text as a single line, and captures the dimensions and the area, in 
+    characters, of the resulting box.  Then, it calculates the height, in characters (read: row count), necessary
+    to contain the same area (read: number of characters) in a box proportional to the container.  The relevant formula is:
+    <center><img src="graphics/eqn.gif" alt=""/></center>
+  </p>
   <h2 id="h3">Calculated and preset word combinations</h2>
   <p>While the script does an admirable job at automating the creation of the individual rows, there are certainly situations in which you would choose to control the word combinations used to split the headline.</p>
-  <p>This can be achieved by presetting the word combinations (using <code>&lt;span class="slabtext"&gt;</code> wrappers) within the markup<sup><a href="#fn1" id="r1">[1]</a></sup>. Should the script detect that the headline has been preset, it will not attempt to dynamically create the word combinations and simply fallback to resizing the preset rows to fit the available horizontal space.</p>
+  <p>This can be achieved by presetting the word combinations (using <code>&lt;span class="slabbedtext"&gt;</code> wrappers) within the markup<sup><a href="#fn1" id="r1">[1]</a></sup>. Should the script detect that the headline has been preset, it will not attempt to dynamically create the word combinations and simply fallback to resizing the preset rows to fit the available horizontal space.</p>
   <p>Adding the <code>span</code> elements to the page markup in this way gives you absolute control over the word combinations used to split the headline text and also enables the targetting of specific rows within the CSS (in order to tweak the line height, change the font family etc).</p>
   <p>Presetting the headline does have its drawbacks though &ndash; at smaller sizes and if the rows have wildly varying letter-counts, jagged right edges may be displayed. The script will adjust the <code>word-spacing</code> or <code>letter-spacing</code> in an attempt to rectify over-shoots or under-shoots in line length like this.</p>
   <p>The following demo showcases two versions of the same headline, the first has rows (word combinations) dynamically calculated by the script while the second has rows preset within the markup (and therefore only resized-to-fit by the script).</p>
@@ -185,24 +198,25 @@
   <h2 id="h4">Headers containing links</h2>
   <p>If the original header contains a link (or should itself have an href set), the generated spans will be wrapped in a link that uses the same href.</p>
   <h2 id="h5">Being responsibly responsive</h2>
-  <p>You may wish to remove the slabtext treatment entirely should either the viewport or the header element resize to below a certain, predefined width; for example, if the viewport width drops to below 380 pixels. This can be achievied by using the <code>viewportBreakpoint</code> and <code>headerBreakpoint</code> plugin options, <a href="#h6">detailed below</a>.</p>
-  <p>This demo page has set <code>viewportBreakpoint</code> to be 380 pixels. Resizing the browser window to anything below this should remove the slabtext treatment from the headlines altogether.</p>
-  <h2 id="h6">Behind the scenes</h2>
-  <p>In an attempt to keep the plugin as fast as possible, a very basic <code>font-size</code> calculation is ran whenever the <code>window.resize</code> event fires. Headlines that have been preset only fire steps 1, 2, 6 and, if required, 7 &ndash; skipping steps 3 through 5 completely. To save extra cpu cycles, the resize event has been throttled to 300ms.</p>
-  <ol>
-    <li>The headlines pixel width is calculated.</li>
-    <li>The headlines pixel <code>font-size</code> is then calculated.</li>                                                                                                                                                                                                          
-    <li>The ideal number of &#8220;characters per line&#8221; is derived by dividing the width (calculated in step 1) by the <code>font-size</code> (calculated in step 2) which itself is multiplied by the font scale ratio (which defaults to 0.78) e.g. for a parent container width of 800 pixels and a font-size of 45 pixels the ideal number of characters per line would be calculated using <code>Math.floor(800 / (45 &times; 0.78)) = 22</code>.</li>
-    <li>The headline text is then split into words (by splitting on the space character) and these words arranged into combinations containing &lt;= the number of ideal characters per line (calculated in step 3).</li>
-    <li>Each word combination is then wrapped in a <code>&lt;span class="slabtext"&gt;</code> element and the headline markup updated with the new content.</li>
-    <li>Each individual <code>span</code> then has its <code>font-size</code> adjusted by multiplying the current <code>font-size</code> by the ratio difference between the parent containers width (calculated in step 1) and the width of the <code>span</code>.</li>
-    <li>If required, each individual <code>span</code> then has either its <code>letter-spacing</code> (if the line contains only one word) or its <code>word-spacing</code> (if the line contains multiple words) adjusted in an attempt to prod the browser into rectifying over-shoots or under-shoots in line length caused by the previous <code>font-size</code> adjustment.</li>
-  </ol>
+  <p>You may wish to remove the jSlabify treatment entirely should either the viewport or the header element resize to below a certain, predefined width; for example, if the viewport width drops to below 380 pixels. This can be achievied by using the <code>viewportBreakpoint</code> and <code>headerBreakpoint</code> plugin options, <a href="#h6">detailed below</a>.</p>
+  <p>This demo page has set <code>viewportBreakpoint</code> to be 380 pixels. Resizing the browser window to anything below this should remove the jSlabify treatment from the headlines altogether.</p>
   <h2 id="h7">Plugin options</h2>
-  <p>The following options can currently be passed to the plugin. The first three listed (<code>fontRatio</code>, <code>forceNewCharCount</code> and <code>wrapAmpersand</code>) are only used whenever the plugin has to dynamically create the word combinations i.e. if <code>&lt;span class="slabtext"&gt;</code> elements are <em>not</em> already present within the markup.</p>
+  <p>The following options can currently be passed to the plugin. The first three listed (<code>fontRatio</code>, <code>forceNewCharCount</code> and <code>wrapAmpersand</code>) are only used whenever the plugin has to dynamically create the word combinations i.e. if <code>&lt;span class="slabbedtext"&gt;</code> elements are <em>not</em> already present within the markup.</p>
   <dl>
-    <dt>fontRatio</dt>
-    <dd>A floating point value that is used when calculating the ideal number of &#8220;characters per line&#8221;. Defaults to 0.78.</dd>
+    <dt>targetFont</dt>
+    <dd>A Boolean value that instructs the script to set the base font-size of the slab based on the font-size of the container if (TRUE) or on the proportions of the container (FALSE). Defaults to FALSE.</dd>
+    <dt>fontZoom</dt>
+    <dd>A Floating Point value that, when targetFont is TRUE, enlarges the slab's base font-size by this multiplier. Defaults to 1.</dd>
+    <dt>constrainHeight</dt>
+    <dd>A Boolean value that instructs the script to resize the completed slab, if its height is greater than the container's height or the proportional height set by slabRatio. Defaults to FALSE.</dd>
+    <dt>fixedHeight</dt>
+    <dd>A Boolean value that instructs the script to set the ideal slab height as the height of the container.  Defaults to FALSE.</dd>
+    <dt>slabRatio</dt>
+    <dd>A Floating Point value that , if fixedHeight is FALSE, defines the ideal slab height, based on the slab width.  Defaults to 1</dd>
+    <dt>hCenter</dt>
+    <dd>A Boolean value that instructs the script to horizontally center the slab within the container.  Defaults to FALSE.</dd>
+    <dt>vCenter<dt>
+    <dd>A Boolean value that instructs the script to vertically center the slab within the container.  Defaults to FALSE.</dd>
     <dt>forceNewCharCount</dt>
     <dd>A Boolean value that instructs the script to recalculate the ideal number of &#8220;characters per line&#8221; and reinsert the spans every time the resize event fires (TRUE) or only whenever the parent containers <code>font-size</code> changes (FALSE). Setting this value to FALSE will inevitably save CPU cycles but is only really of use in modern browsers that respond to media queries (or older browsers have been patched to respond to media queries). Defaults to TRUE.</dd> 
     <dt>wrapAmpersand</dt>
@@ -210,9 +224,9 @@
     <dt>maxFontSize</dt>
     <dd>An Integer value that indicates the maximum pixel font-size that the script can set. Defaults to 999.</dd>
     <dt>viewportBreakpoint</dt>
-    <dd>An Integer value that indicates the minimum pixel width the viewport may have before the slabtext treatment is removed. There is no default value.</dd>
+    <dd>An Integer value that indicates the minimum pixel width the viewport may have before the jSlabify treatment is removed. There is no default value.</dd>
     <dt>headerBreakpoint</dt>
-    <dd>An Integer value that indicates the minimum pixel width the header may have before the slabtext treatment is removed. There is no default value.</dd>
+    <dd>An Integer value that indicates the minimum pixel width the header may have before the jSlabify treatment is removed. There is no default value.</dd>
     <dt>noResizeEvent</dt>
     <dd>A Boolean value that instructs the script to ignore the <code>window.resize</code> event (TRUE)  or not (FALSE). Useful for those of you using a fixed width layout. Defaults to FALSE.</dd>
     <dt>resizeThrottleTime</dt>
@@ -222,18 +236,18 @@
     <dt>postTweak</dt>
     <dd>A Boolean value that instructs the script to tweak the lineheight or word spacing after the fontsize calculation has been ran (TRUE) or not (FALSE). Defaults to TRUE.</dd>
     <dt>minCharsPerLine</dt>
-    <dd>An optional Integer value that indicates the minimum number of characters to set per line. Headlines that have a character count smaller than this value are not given the slabText treatment.</dd>
+    <dd>An optional Integer value that indicates the minimum number of characters to set per line. Headlines that have a character count smaller than this value are not given the jSlabified treatment.</dd>
   </dl>
   <p>It&#8217;s also worth noting that any non-breaking space character used to prevent widowed words within the original, non-adjusted headline will also be included within the adjusted headline.</p>
   <h2 id="h8">A note on the CSS</h2>
   <p>The plugin requires the following CSS rules are made available:</p>
-  <pre><code>.slabtexted .slabtext
+  <pre><code>.slabified .slabbedtext
         {
         display:-moz-inline-box;
         display:inline-block;
         white-space:nowrap;
         }
-.slabtextinactive .slabtext
+.slabbedtextinactive .slabbedtext
         {
         display:inline;
         white-space:normal;
@@ -243,15 +257,15 @@
         *letter-spacing:0 !important;
         *word-spacing:0 !important;
         }
-.slabtextdone .slabtext
+.slabbedtextdone .slabbedtext
         {
         display:block;
         }
 </code></pre>        
-  <p>The <code>span</code> elements added to the headline are given the class <code>slabtext</code> and the document <code>body</code> given the class <code>slabtexted</code>.</p>  
-  <p>Using a double-whammy className inheritance trick like this means that you can safely add the <code>&lt;span class="slabtext"></code> elements into the markup but they won&#8217;t actually get styled until the script gets called and the <code>slabtexted</code> classname added to the <code>body</code>.</p>
+  <p>The <code>span</code> elements added to the headline are given the class <code>slabbedtext</code> and the document <code>body</code> given the class <code>slabified</code>.</p>  
+  <p>Using a double-whammy className inheritance trick like this means that you can safely add the <code>&lt;span class="slabbedtext"></code> elements into the markup but they won&#8217;t actually get styled until the script gets called and the <code>slabified</code> classname added to the <code>body</code>.</p>
   <p>The <code>span</code> elements are set as <code>display:inline-block</code> during the font-size calculation. This is to take advantage of the <code>inline-block</code> shrink-wrap effect that enables the script to determine the width of each row.</p>
-  <p>Unfortunately, one side-effect of using <code>inline-block</code> means that the injected <code>span</code> elements react to surrounding whitespace (which, amongst other things, augments the vertical spacing between rows) &ndash; this is remedied by giving the header a classname of <code>slabtextdone</code> whenever the <code>font-size</code> calculation is complete, which sets a <code>display:block</code> style and avoids the whitespace and styling issues associated with  <code>inline-block</code>.</p>
+  <p>Unfortunately, one side-effect of using <code>inline-block</code> means that the injected <code>span</code> elements react to surrounding whitespace (which, amongst other things, augments the vertical spacing between rows) &ndash; this is remedied by giving the header a classname of <code>slabbedtextdone</code> whenever the <code>font-size</code> calculation is complete, which sets a <code>display:block</code> style and avoids the whitespace and styling issues associated with  <code>inline-block</code>.</p>
   <p>Sharp-eyed readers may have noticed that the value of zero is passed to Internet Explorer using the star-hack. This is because IE &lt; 8 doesn&#8217;t understand the <code>inherit</code> property and so we reset to zero as a failsafe.</p>
   <p>The CSS file is miniscule though and you may be better off pasting the contents of the minified version bundled with the download into your main CSS file to avoid an unnecessary HTTP request.</p>        
   <h2 id="h9">Buyer beware</h2>
@@ -259,18 +273,18 @@
   <ol>
     <li>Headlines with lots of horizontal space to fill are more gracefully displayed across browsers.</li>
     <li>Headlines with little horizontal space tend to have jagged right edges, especially if the rows have been preset within the markup and each row has a wildly varying letter-count. Firefox appears to be the best at resizing-to-fit the word combinations and some fonts tend to be better than others at being resized-to-fit.</li>
-    <li>The element to be given the slabText treatment has its (inner)HTML replaced entirely (by using the jQuery <code>.html</code> method), which means that all images and links contained within will disappear without a trace.</li>
+    <li>The element to be given the jSlabify treatment has its (inner)HTML replaced entirely (by using the jQuery <code>.html</code> method), which means that all images and links contained within will disappear without a trace.</li>
     <li>Unlike the original <a href="http://erikloyer.com/index.php/blog/the_slabtype_algorithm_part_1_background/">slabtype algorithm</a>, vertical space is not taken into consideration at all.</li>
     <li>I&#8217;ve no idea how the script behaves in a right-to-left environment.</li>
     <li>If the header contains multiple links, only the first link located is taken into account.</li>
     <li>Internet Explorer 6, due to its non-support of <code>inline-block</code>, cannot scale <em>down</em> the text when the browser viewport is reduced in width. This will not be an issue if you serve a fixed width design to IE6 and fluid width design to other, more capable browsers.</li>
-    <li>Internet Explorer &lt; 8 does not support the CSS value of <code>inherit</code> which means that the <code>letter-spacing</code> and <code>word-spacing</code> have to get reset to zero whenever the slabText treatment is removed by the script.</li>
-    <li>Always call the script <em>after</em> all <code>fontface</code> fonts have downloaded. I&#8217;ve hacked this for the demo to enable you to see the headline transformation as the script kicks-in but you should always use google WebFont loaders <code>active()</code> and <code>inactive()</code> callbacks to launch the slabText treatment (or a similar "font loaded" callback feature from another font provider).</li>
+    <li>Internet Explorer &lt; 8 does not support the CSS value of <code>inherit</code> which means that the <code>letter-spacing</code> and <code>word-spacing</code> have to get reset to zero whenever the jSlabify treatment is removed by the script.</li>
+    <li>Always call the script <em>after</em> all <code>fontface</code> fonts have downloaded. I&#8217;ve hacked this for the demo to enable you to see the headline transformation as the script kicks-in but you should always use google WebFont loaders <code>active()</code> and <code>inactive()</code> callbacks to launch the jSlabify treatment (or a similar "font loaded" callback feature from another font provider).</li>
   </ol>
   <h2 id="h10">Credit where credit is due</h2>
   <p>Based on the nice, shiny <a href="http://fittextjs.com/">fittext</a> jQuery plugin by <a href="http://paravelinc.com/">Paravel</a> &amp; the wonderful <a href="http://erikloyer.com/index.php/blog/the_slabtype_algorithm_part_1_background/">slabtype algorithm</a> by Erik Loyer. Zach Leatherman has also written a jQuery plugin named <a href="http://www.zachleat.com/web/bigtext-makes-text-big/">BigText</a> with similar but not exact functionality which is well worth a visit.</p>                      
   <h2 id="h11">Grab the code</h2>
-  <p>The code can be <a href="http://github.com/freqDec/slabText/">downloaded from github</a>. Both minified and unminified versions are included within the bundle. The minified version currently clocks-in at 3k &ndash; this drops to around 2k when gzipped.</p>       
+  <p>The code can be <a href="https://github.com/gschoppe/jSlabify">downloaded from github</a>. Both minified and unminified versions are included within the bundle. The minified version currently clocks-in at 4k &ndash; this drops to around 3k when gzipped.</p>       
   <h2 id="h12">A few more examples</h2>
   <p>As way of example, here&#8217;s a random assortment of book titles (Note: I&#8217;ve left widowed words in all of them).</p>
   <!-- Yeah, yeah - multiple h1's etc. It's horrible but not the end of the world. Apologies to those offended. -->
@@ -299,8 +313,8 @@
   <h1><a href="http://en.wikipedia.org/wiki/Dracula" title="The Dracula wikipedia page">Dracula</a></h1>
   <footer>
     <section>
-      <p id="fn1"><a href="#r1">(1)</a> Of course, you can always use Javascript to inject the <code>&lt;span class="slabtext"&gt;</code> elements into the headline before calling the plugin &ndash; which would keep the markup squeaky clean and cruft free. Here&#8217;s a quick example of how it might be done:</p>
-<pre><code>var stS = "&lt;span class='slabtext'>",
+      <p id="fn1"><a href="#r1">(1)</a> Of course, you can always use Javascript to inject the <code>&lt;span class="slabbedtext"&gt;</code> elements into the headline before calling the plugin &ndash; which would keep the markup squeaky clean and cruft free. Here&#8217;s a quick example of how it might be done:</p>
+<pre><code>var stS = "&lt;span class='slabbedtext'>",
     stE = "&lt;/span>",
     txt = [
         "For one night only",
@@ -308,14 +322,14 @@
         "with special Studio One guests", 
         "Dillinger &amp; Lone Ranger"];
     
-$("#myHeader").html(stS + txt.join(stE + stS) + stE).slabText();</code></pre>
+$("#myHeader").html(stS + txt.join(stE + stS) + stE).jSlabify();</code></pre>
     </section>
   </footer>
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
   <script src="./js/jquery.jSlabify.js"></script>
   <script>
-    // Function to slabtext the H1 headings
-    function slabTextHeadlines() {
+    // Function to jSlabify the H1 headings
+    function slabifyHeadlines() {
         $("h1").jSlabify({
             // Don't slabtext the headers if the viewport is under 380px
             viewportBreakpoint:380,
@@ -331,7 +345,7 @@ $("#myHeader").html(stS + txt.join(stE + stS) + stE).slabText();</code></pre>
     // google WebFont loader events (or something similar) for better control
     $(window).load(function() {
         // So, to recap... don't actually do this, it's nasty!
-        setTimeout(slabTextHeadlines, 1000);
+        setTimeout(slabifyHeadlines, 1000);
     });
   </script>   
 </body>
