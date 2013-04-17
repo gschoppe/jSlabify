@@ -32,6 +32,8 @@
             "maxFontSize"           : 999,
             // Do we try to tweak the letter-spacing or word-spacing?
             "postTweak"             : true,
+            // what is the minimum wordspacing to allow in pixels?
+            "minWordSpace"          : 3,
             // Decimal precision to use when setting CSS values
             "precision"             : 3,
             // The min num of chars a line has to contain
@@ -62,6 +64,7 @@
                 headerBreakpoint    = settings.headerBreakpoint,
                 viewportBreakpoint  = settings.viewportBreakpoint,
                 postTweak           = settings.postTweak,
+                minWordSpace        = settings.minWordSpace,
                 precision           = settings.precision,
                 resizeThrottleTime  = settings.resizeThrottleTime,
                 minCharsPerLine     = settings.minCharsPerLine,
@@ -224,22 +227,40 @@
                         ratio,
                         newSize;
                     
-                    if(postTweak)
+                    var leaveWordSpace = 0;
+                    if(postTweak) {
                         $span.css({"word-spacing":0, "letter-spacing":0});
+                        var spaceCount = innerText.split(" ").length - 1;
+                        if (spaceCount < 0)
+                            spaceCount = 0;
+                        leaveWordSpace = spaceCount*minWordSpace; 
+                    }
                     
                     $span.css("font-size", 1 + "em");
-                    ratio    = parentWidth / $span.width();
+                    ratio    = parentWidth / ($span.width() + leaveWordSpace);
                     newSize = (Math.min((origFontSize * ratio), settings.maxFontSize)/origFontSize).toFixed(precision);
                     $span.css("font-size", newSize + "em");
                     
                     // Do we still have space to try to fill or crop
-                    diff = !!postTweak ? parentWidth - $span.width() : false;
-                    
+                    diff = parentWidth - $span.width();
+                    if(diff < 0 )
+                        diff = 0;
                     // A "dumb" tweak in the blind hope that the browser will
                     // resize the text to better fit the available space.
                     // Better "dumb" and fast...
-                    if(diff)
-                        $span.css((wordSpacing ? 'word' : 'letter') + '-spacing', (diff / (wordSpacing ? innerText.split(" ").length - 1 : innerText.length)).toFixed(precision) + "px");
+                    if(postTweak && diff) {
+                        if (wordSpacing) {
+                            var spacing = (diff / (innerText.split(" ").length - 1)).toFixed(precision);
+                            if( spacing < 0 )
+                                spacing = 0;
+                            $span.css('word-spacing', spacing + "px");
+                        } else {
+                            var spacing = (diff / innerText.length).toFixed(precision);
+                            if( spacing < 0 )
+                                spacing = 0;
+                            $span.css('letter-spacing', spacing + "px");
+                        }
+                    }
                 });
                 var newMultiplier = 1;
                 if(constrainHeight && ($inner.height() > parentHeight)) {

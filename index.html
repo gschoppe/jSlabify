@@ -165,6 +165,7 @@
 </head>
 <body>
   <h1 id="h1">jSlabify &ndash; a jQuery plugin for creating slabbed typography</h1>                
+  <center><h2><a href="livedemo.html">Try the New Live Demo!</a></h2></center>
   <p>
     I ran across Brian McAllister's <a href="http://www.frequency-decoder.com/demo/slabText/">slabtext</a> jQuery plugin,
     and was immediately taken by the concept of algorithmically slabbing text.  That, of course, led me to Erik Loyer's
@@ -234,7 +235,9 @@
     <dt>precision</dt>
     <dd>An Integer value that indicates the decimal precision to use when setting the CSS values <code>line-height</code>, <code>word-spacing</code> and <code>font-size</code>. Defaults to 3.</dd>
     <dt>postTweak</dt>
-    <dd>A Boolean value that instructs the script to tweak the lineheight or word spacing after the fontsize calculation has been ran (TRUE) or not (FALSE). Defaults to TRUE.</dd>
+    <dd>A Boolean value that instructs the script to tweak the lineheight or word spacing after the fontsize calculation has been run (TRUE) or not (FALSE). Defaults to TRUE.</dd>
+    <dt>minWordSpace</dt>
+    <dd>An Integer value that sets the minimum number of pixels between words, after tweaking. Defaults to 3.</dd>
     <dt>minCharsPerLine</dt>
     <dd>An optional Integer value that indicates the minimum number of characters to set per line. Headlines that have a character count smaller than this value are not given the jSlabified treatment.</dd>
   </dl>
