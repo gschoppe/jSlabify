@@ -4,52 +4,49 @@
 <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
 <script src="js/jquery.jSlabify.min.js"></script>
 <script type="text/javascript">
+    function isNumber(n) {
+        return !isNaN(parseFloat(n)) && isFinite(n);
+    }
+    
     $(document).ready(function() {
-        $("#slabwrap .slabme").jSlabify({
-            constrainHeight: true,
-            slabRatio      : 4,
-            hCenter        : true
-        });
-        $("#slabwrap2 .slabme").jSlabify({
-            constrainHeight: true,
-            slabRatio      : 2,
-            hCenter        : true
-        });
-        $("#slabwrap3 .slabme").jSlabify({
-            constrainHeight: true,
-            slabRatio      : 1,
-            hCenter        : true
-        });
         
-        $("#slabsource").bind("input propertychange", function (evt) {
+        $("#slabsource, #slabratio").bind("input propertychange", function (evt) {
             // If it's the propertychange event, make sure it's the value that changed.
             if (window.event && event.type == "propertychange" && event.propertyName != "value")
                 return;
-            var val = $('#slabsource').val();
-            $('#slabwrap .slabme').text(val);
-            $("#slabwrap .slabme").jSlabify({
-                constrainHeight: true,
-                slabRatio      : 4,
-                hCenter        : true
-            });
-            
-            $('#slabwrap2 .slabme').text(val);
-            $("#slabwrap2 .slabme").jSlabify({
-                constrainHeight: true,
-                slabRatio      : 2,
-                hCenter        : true
-            });
-            
-            $('#slabwrap3 .slabme').text(val);
-            $("#slabwrap3 .slabme").jSlabify({
-                constrainHeight: true,
-                slabRatio      : 1,
-                hCenter        : true
-            });
-            
+            slab_it_now();
         });
-        
+        $("#slabforcedim").change( function(){
+            slab_it_now()
+        });
     });
+    
+    function slab_it_now() {
+        var val   = $('#slabsource').val();
+        var ratio = $('#slabratio' ).val();
+        if(isNumber(ratio) && ratio > 0){
+            if ($('#slabforcedim').is(':checked')) {
+                $('#slabwrap .slabme').text(val);
+                $("#slabwrap .slabme").jSlabify({
+                    constrainHeight: true,
+                    slabRatio      : ratio,
+                    hCenter        : true,
+                    vCenter        : true
+                });
+            } else {
+                $('#slabwrap .slabme').text(val);
+                $("#slabwrap .slabme").jSlabify({
+                    constrainHeight: true,
+                    slabRatio      : ratio,
+                    hCenter        : true
+                });
+            } 
+            
+            $("#error").text("");
+        } else {
+            $("#error").text("*slab ratio must be a number greater than 0");
+        }
+    }
 </script>
 <style>
 @font-face {                            
@@ -63,8 +60,13 @@
     font-style: normal;
 } 
 
-#slabwrap, #slabwrap2, #slabwrap3 {
-    width: 300px;
+html {
+     overflow: -moz-scrollbars-vertical;
+     overflow: scroll;
+}
+
+#slabwrap {
+    width: 400px;
     padding: 20px;
     border: 1px solid #000;
     
@@ -78,28 +80,43 @@
     font-style:italic;
     font-weight:lighter;
 }
+
+#error {
+    color: red;
+}
 </style>
 </head>
 <body>
-    <div style="clear: both; height: 50px;">
-        Enter Sample text to Slab: <input type="text" id="slabsource"/>
-    </div>
-    <div style="float: left; height: 600px;width: 350px;">
+    <center>
+        <h1>jSlabify Live Demo</h1>
+        <table>
+            <tr>
+                <td>
+                    Enter Sample text to Slab: 
+                </td><td>
+                    <input type="text" id="slabsource"/>
+                </td>
+            </tr><tr>
+                <td>
+                    Enter Target Slab Ratio:
+                </td><td>
+                    <input tyoe="text" id="slabratio" value="1"/>
+                </td>
+            </tr><tr>
+                <td>
+                    Force Dimensions?:
+                </td><td>
+                    <input type="checkbox" id="slabforcedim">
+                </td>
+            </tr><tr>
+                <span id="error"></span>
+            </tr>
+        </table>
+        <br/><br/><hr/><br/>
         <div id="slabwrap">
             <div class="slabme">
             </div>
-        </div><br/>
-        <div id="slabwrap2">
-            <div class="slabme">
-            </div>
         </div>
-    </div>
-    <div style="float: left; height: 600px; width: 250px;">
-        <div id="slabwrap3">
-            <div class="slabme">
-            </div>
-        </div>
-    </div>
-
+    </center>
 </body>
 </html>

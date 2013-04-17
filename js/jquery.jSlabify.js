@@ -101,6 +101,12 @@
                     fontInfo,
                     fs;
                 
+                if(vCenter) {
+                    $this.height(parentHeight);
+                } else if(!fixedHeight) {
+                    $this.css("height", "auto")
+                }
+                
                 // Remove the slabtextdone and slabtextinactive classnames to enable the inline-block shrink-wrap effect
                 $this.removeClass("slabbedtextdone slabbedtextinactive");
                 
