@@ -1,4 +1,4 @@
-/*! jQuery jSlabify plugin v1.0 MIT/GPL2 @gschoppe */
+/*! jQuery jSlabify plugin v1.2 MIT/GPL2 @gschoppe */
 (function( $ ){
     $.fn.jSlabify = function(options) {
         var settings = {
@@ -7,9 +7,10 @@
             //when targeted by font, enlarge base size by this multiplier
             "fontZoom"              : 1,
             //If the actual height is greater than the box size (as defined by css or ratio), do we resize?
+            "groupStr"              : "&nbsp;",
             "constrainHeight"       : false,
             // The ratio between container width and ideal height
-            "slabRatio"              : 1,
+            "slabRatio"             : 1,
             // is the container height fixed in the css?
             "fixedHeight"           : false,
             // force center horizontally with text-align on the wrapped div
@@ -50,9 +51,11 @@
             
             var $this               = $(this),
                 keepSpans           = $("span.slabbedtext", $this).length,
-                words               = keepSpans ? [] : String($.trim($this.text())).replace(/\s{2,}/g, " ").split(" "),
                 origFontSize        = null,
                 idealCharPerLine    = null,
+                uNBSP               = '\u00A0',
+                groupStr            = (settings.groupStr)?new RegExp(settings.groupStr.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"),"g"):null,
+                words               = keepSpans ? [] : String($.trim($this.text())).replace(/\s{2,}/g, " ").replace(groupStr, uNBSP).split(" "),
                 targetFont          = settings.targetFont,
                 fontZoom            = settings.fontZoom,
                 constrainHeight     = settings.constrainHeight,

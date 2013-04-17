@@ -220,6 +220,8 @@
     <dd>A Boolean value that instructs the script to vertically center the slab within the container.  Defaults to FALSE.</dd>
     <dt>forceNewCharCount</dt>
     <dd>A Boolean value that instructs the script to recalculate the ideal number of &#8220;characters per line&#8221; and reinsert the spans every time the resize event fires (TRUE) or only whenever the parent containers <code>font-size</code> changes (FALSE). Setting this value to FALSE will inevitably save CPU cycles but is only really of use in modern browsers that respond to media queries (or older browsers have been patched to respond to media queries). Defaults to TRUE.</dd> 
+    <dt>groupStr</dt>
+    <dd>A String that the algorithm converts to a non-breaking space. Set as NULL to disable. Defaults to "&nbsp;".</dd>
     <dt>wrapAmpersand</dt>
     <dd>A Boolean value that instructs the script to wrap ampersands (&amp;) in a <code>&lt;span class="amp"&gt;</code> (TRUE) or not (FALSE). Defaults to TRUE.</dd>
     <dt>maxFontSize</dt>

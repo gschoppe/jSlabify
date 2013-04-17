@@ -9,6 +9,11 @@
     }
     
     $(document).ready(function() {
+        $("#header").jSlabify({
+            constrainHeight: true,
+            slabRatio      : 3,
+            hCenter        : true
+        });
         
         $("#slabsource, #slabratio").bind("input propertychange", function (evt) {
             // If it's the propertychange event, make sure it's the value that changed.
@@ -65,6 +70,16 @@ html {
      overflow-y: scroll;
 }
 
+#headerwrap {
+    width: 400px;
+    padding: 20px;
+    
+    font-family: 'LeagueGothicRegular', Charcoal, Arial Black, Gadget, Sans serif;
+    font-weight: normal;
+    line-height: .8;
+    text-transform: uppercase;
+}
+
 #slabwrap {
     width: 400px;
     padding: 20px;
@@ -88,7 +103,7 @@ html {
 </head>
 <body>
     <center>
-        <h1>jSlabify Live Demo</h1>
+        <div id="headerwrap"><div id="header">jSlabify Live Demo</div></h1></div>
         <table>
             <tr>
                 <td>
@@ -98,7 +113,7 @@ html {
                 </td>
             </tr><tr>
                 <td>
-                    Enter Target Slab Ratio:
+                    Enter Target Ratio <i>(w/h)</i>:
                 </td><td>
                     <input tyoe="text" id="slabratio" value="1"/>
                 </td>
