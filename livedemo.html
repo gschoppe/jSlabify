@@ -31,7 +31,7 @@
         var ratio = $('#slabratio' ).val();
         if(isNumber(ratio) && ratio > 0){
             if ($('#slabforcedim').is(':checked')) {
-                $('#slabwrap .slabme').text(val);
+                $('#slabwrap .slabme').html(val);
                 $("#slabwrap .slabme").jSlabify({
                     constrainHeight: true,
                     slabRatio      : ratio,
@@ -39,7 +39,7 @@
                     vCenter        : true
                 });
             } else {
-                $('#slabwrap .slabme').text(val);
+                $('#slabwrap .slabme').html(val);
                 $("#slabwrap .slabme").jSlabify({
                     constrainHeight: true,
                     slabRatio      : ratio,

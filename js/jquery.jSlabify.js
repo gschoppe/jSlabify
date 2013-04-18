@@ -7,7 +7,6 @@
             //when targeted by font, enlarge base size by this multiplier
             "fontZoom"              : 1,
             //If the actual height is greater than the box size (as defined by css or ratio), do we resize?
-            "groupStr"              : "&nbsp;",
             "constrainHeight"       : false,
             // The ratio between container width and ideal height
             "slabRatio"             : 1,
@@ -53,9 +52,7 @@
                 keepSpans           = $("span.slabbedtext", $this).length,
                 origFontSize        = null,
                 idealCharPerLine    = null,
-                uNBSP               = '\u00A0',
-                groupStr            = (settings.groupStr)?new RegExp(settings.groupStr.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"),"g"):null,
-                words               = keepSpans ? [] : String($.trim($this.text())).replace(/\s{2,}/g, " ").replace(groupStr, uNBSP).split(" "),
+                words               = keepSpans ? [] : String($.trim($this.text())).replace(/\s{2,}/g, " ").split(" "),
                 targetFont          = settings.targetFont,
                 fontZoom            = settings.fontZoom,
                 constrainHeight     = settings.constrainHeight,
