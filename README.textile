@@ -1,3 +1,2 @@
 h1. jSlabify &ndash; a jQuery plugin for creating slabbed typography
-
-demo page coming soon.
+gschoppe.com

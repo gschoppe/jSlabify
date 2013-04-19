@@ -8,7 +8,7 @@
         return !isNaN(parseFloat(n)) && isFinite(n);
     }
     
-    $(document).ready(function() {
+    $(window).bind("load", function() {
         $("#header").jSlabify({
             constrainHeight: true,
             slabRatio      : 3,

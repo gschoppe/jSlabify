@@ -1,4 +1,4 @@
-/*! jQuery jSlabify plugin v1.2 MIT/GPL2 @gschoppe */
+/*! jQuery jSlabify plugin v2.0 MIT/GPL2 @gschoppe */
 (function( $ ){
     $.fn.jSlabify = function(options) {
         var settings = {
@@ -52,7 +52,9 @@
                 keepSpans           = $("span.slabbedtext", $this).length,
                 origFontSize        = null,
                 idealCharPerLine    = null,
-                words               = keepSpans ? [] : String($.trim($this.text())).replace(/\s{2,}/g, " ").split(" "),
+                words               = String($.trim($this.text())).replace(/\s{2,}/g, " ").split(" "),
+                sections            = [],
+                ungroupedstring     = [],
                 targetFont          = settings.targetFont,
                 fontZoom            = settings.fontZoom,
                 constrainHeight     = settings.constrainHeight,
@@ -75,6 +77,35 @@
             
             if(!keepSpans && minCharsPerLine && words.join(" ").length < minCharsPerLine)
                 return;
+            
+            if(keepSpans) {  //build array of sections to later slab
+                var div=document.createElement("div"); 	// creates a new temp div that we can mess-up without affecting the page
+                $(div).html($this.html());		        // fills temp div with existing div content
+
+                var a, 
+                    remainder;
+                while(a=div.querySelectorAll("span.slabbedtext")[0]) {	// continues grabbing all span.slabbedtext tags until none are left:
+                    var groupedValue   = $(a).text();
+                    var ungroupedValue = $(a)[0].previousSibling;
+                    ungroupedValue     = (ungroupedValue&&ungroupedValue.nodeValue)?ungroupedValue.nodeValue.replace(/\s{2,}/g, " ").trim():"";
+                    remainder          = $(a)[0].nextSibling;
+                    remainder          = (remainder&&remainder.nodeValue)?remainder.nodeValue.replace(/\s{2,}/g, " ").trim():"";
+                    if(ungroupedValue != "") {
+                        sections.push({type: 0, value: ungroupedValue });     // push the other text to the stack
+                        ungroupedstring.push(ungroupedValue);
+                    }
+                    sections.push({type: 1, value: groupedValue});	          // push the span code to the stack
+                    $(a).prevAll().remove();
+                    $(a).remove();
+                }
+                if(remainder != "") {
+                    sections.push({type: 0, value: remainder }); // push the last remaining text to the stack
+                    ungroupedstring.push(remainder);
+                }
+                ungroupedstring = ungroupedstring.join(" ");
+                $(div).remove();   
+            }
+            
             
             // Calculates the pixel equivalent of 1em within the current header
             var grabFontInfo = function() {
@@ -124,7 +155,7 @@
                 // If the parent containers font-size has changed or the "forceNewCharCount" option is true (the default),
                 // then recalculate the "characters per line" count and re-render the inner spans
                 // Setting "forceNewCharCount" to false will save CPU cycles...
-                if(!keepSpans && (forceNewCharCount || fs != origFontSize)) {
+                if(forceNewCharCount || fs != origFontSize) {
                             
                     origFontSize = fontInfo[1];
 
@@ -132,6 +163,7 @@
                     if(targetFont) {
                         var charRatio       = fontInfo[4],
                             newCharPerLine  = Math.min(60, Math.floor(parentWidth / (origFontSize * charRatio * fontZoom)));
+                            lineCount       = Math.round(fontInfo[3]/newCharPerLine);
                     } else {
                         var textLength      = fontInfo[3],
                             textRatio       = fontInfo[2],
@@ -139,75 +171,97 @@
                             lineCount       = Math.round(Math.sqrt(textRatio/boxRatio)),
                             newCharPerLine  = Math.min(60, Math.max(Math.round(textLength/lineCount), 1));
                     }
-                    var wordIndex       = 0,
-                        lineText        = [],
-                        counter         = 0,
-                        preText         = "",
-                        postText        = "",
-                        finalText       = "",
-                        slice,
-                        preDiff,
-                        postDiff;
-                                        
-                    if(newCharPerLine != idealCharPerLine) {
-                        idealCharPerLine = newCharPerLine;
-                                                                
-                        while (wordIndex < words.length) {
-                       
-                            postText = "";
-
-                            // build two strings (preText and postText) word by word, with one
-                            // string always one word behind the other, until
-                            // the length of one string is less than the ideal number of characters
-                            // per line, while the length of the other is greater than that ideal
-                            while (postText.length < idealCharPerLine) {
-                                preText   = postText;
-                                postText += words[wordIndex] + " ";
-                                if(++wordIndex >= words.length) {
-                                    break;
-                                }
-                            }
-
-                            // This bit hacks in a minimum characters per line test
-                            // on the last line
-                            if(minCharsPerLine) {
-                                slice = words.slice(wordIndex).join(" ");
-                                if(slice.length < minCharsPerLine) {
-                                    postText += slice;
-                                    preText = postText;
-                                    wordIndex = words.length + 2;
-                                }
-                            }
-
-                            // calculate the character difference between the two strings and the
-                            // ideal number of characters per line
-                            preDiff  = idealCharPerLine - preText.length;
-                            postDiff = postText.length - idealCharPerLine;
-            
-                            // if the smaller string is closer to the length of the ideal than
-                            // the longer string, and doesn’t contain less than minCharsPerLine
-                            // characters, then use that one for the line
-                            if((preDiff < postDiff) && (preText.length >= (minCharsPerLine || 2))) {
-                                finalText = preText;
-                                wordIndex--;
-                            // otherwise, use the longer string for the line
+                    
+                    if(!keepSpans) {
+                        $this.html(makeSlabSpans(newCharPerLine, words).join(""));
+                    }else{
+                        lineCount = Math.max(lineCount, sections.length);
+                        var unusedLines = lineCount - keepSpans;
+                        var finalSlabs = [];
+                        for(var i = 0; i < sections.length; i++) {
+                            if(sections[i].type) {
+                                finalSlabs.push('<span class="slabbedtext">' + sections[i].value + "</span>");
                             } else {
-                                finalText = postText;
+                                var section = String($.trim(sections[i].value));
+                                charPerLine = section.length/Math.max(Math.round(unusedLines * section.length/ungroupedstring.length), 1);
+                                sectionWords = section.replace(/\s{2,}/g, " ").split(" ");
+                                finalSlabs = finalSlabs.concat(makeSlabSpans(charPerLine, sectionWords));
                             }
-
-                            // HTML-escape the text
-                            finalText = $('<div/>').text(finalText).html()
-
-                            // Wrap ampersands in spans with class `amp` for specific styling
-                            if(settings.wrapAmpersand)
-                                finalText = finalText.replace(/&amp;/g, '<span class="amp">&amp;</span>');
-
-                            finalText = $.trim(finalText)
-
-                            lineText.push('<span class="slabbedtext">' + finalText + "</span>");
                         }
-                                    
-                        $this.html(lineText.join(" "));
+                        $this.html(finalSlabs.join(""));
+                    }
+                    
+                    function makeSlabSpans(charPerLine, sectionWords) {
+                        var wordIndex       = 0,
+                            lineText        = [],
+                            counter         = 0,
+                            preText         = "",
+                            postText        = "",
+                            finalText       = "",
+                            slice,
+                            preDiff,
+                            postDiff;
+                                            
+                        if(charPerLine != idealCharPerLine) {
+                            idealCharPerLine = charPerLine;
+                                                                    
+                            while (wordIndex < sectionWords.length) {
+                           
+                                postText = "";
+
+                                // build two strings (preText and postText) word by word, with one
+                                // string always one word behind the other, until
+                                // the length of one string is less than the ideal number of characters
+                                // per line, while the length of the other is greater than that ideal
+                                while (postText.length < idealCharPerLine) {
+                                    preText   = postText;
+                                    postText += sectionWords[wordIndex] + " ";
+                                    if(++wordIndex >= sectionWords.length) {
+                                        break;
+                                    }
+                                }
+
+                                // This bit hacks in a minimum characters per line test
+                                // on the last line
+                                if(minCharsPerLine) {
+                                    slice = sectionWords.slice(wordIndex).join(" ");
+                                    if(slice.length < minCharsPerLine) {
+                                        postText += slice;
+                                        preText = postText;
+                                        wordIndex = sectionWords.length + 2;
+                                    }
+                                }
+
+                                // calculate the character difference between the two strings and the
+                                // ideal number of characters per line
+                                preDiff  = idealCharPerLine - preText.length;
+                                postDiff = postText.length - idealCharPerLine;
+                
+                                // if the smaller string is closer to the length of the ideal than
+                                // the longer string, and doesn’t contain less than minCharsPerLine
+                                // characters, then use that one for the line
+                                if((preDiff < postDiff) && (preText.length >= (minCharsPerLine || 2))) {
+                                    finalText = preText;
+                                    wordIndex--;
+                                // otherwise, use the longer string for the line
+                                } else {
+                                    finalText = postText;
+                                }
+
+                                // HTML-escape the text
+                                finalText = $('<div/>').text(finalText).html()
+
+                                // Wrap ampersands in spans with class `amp` for specific styling
+                                if(settings.wrapAmpersand)
+                                    finalText = finalText.replace(/&amp;/g, '<span class="amp">&amp;</span>');
+
+                                finalText = $.trim(finalText)
+
+                                lineText.push('<span class="slabbedtext">' + finalText + "</span>");
+                            }
+                            return lineText;
+                        }
+                        
                         // If we have a headLink, add it back just inside our target, around all the slabText spans
                         if(headLink)
                             $this.wrapInner('<a href="' + headLink + '" ' + (linkTitle ? 'title="' + linkTitle + '" ' : '') + '/>');

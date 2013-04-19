@@ -1,0 +1,100 @@
+<html>
+<head>
+<link rel="stylesheet" href="jslabify/jSlabify.css">
+<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+<script src="jslabify/jquery.jSlabify.js"></script>
+<script type="text/javascript">
+    function isNumber(n) {
+        return !isNaN(parseFloat(n)) && isFinite(n);
+    }
+    
+    function slab_it_now() {
+        var ratio = $('#ratio' ).val();
+        if(isNumber(ratio) && ratio > 0) {
+            $("#slabwrap .slabme").html("He who controls others may be powerful, but he who has mastered himself is mightier still.");
+            $("#slabwrap .slabme").jSlabify({
+                constrainHeight: true,
+                slabRatio      : ratio,
+                hCenter        : true,
+                vCenter        : true
+            });
+            $("#slabwrap2 .slabme").html("He who controls others may be <span class=\"slabbedtext\">powerful,</span> but he who has mastered himself <span class=\"slabbedtext\">is mightier still.</span>");
+            $("#slabwrap2 .slabme").jSlabify({
+                constrainHeight: true,
+                slabRatio      : ratio,
+                hCenter        : true,
+                vCenter        : true
+            });
+            $("#slabwrap3 .slabme").html("He who controls <span class=\"slabbedtext\">others</span> may be powerful, but he who has mastered <span class=\"slabbedtext\">himself</span> is mightier still.");
+            $("#slabwrap3 .slabme").jSlabify({
+                constrainHeight: true,
+                slabRatio      : ratio,
+                hCenter        : true,
+                vCenter        : true
+            });
+        }
+    }
+    
+    $(window).bind("load", function() {
+        slab_it_now();
+        
+        $("#ratio").bind("input propertychange", function (evt) {
+            // If it's the propertychange event, make sure it's the value that changed.
+            if (window.event && event.type == "propertychange" && event.propertyName != "value")
+                return;
+            slab_it_now();
+        });
+        
+    });
+</script>
+<style>
+#slabwrap, #slabwrap2, #slabwrap3 {
+    width: 300px;
+    padding: 20px;
+    border: 1px solid #000;
+    
+    font-family: 'LeagueGothicRegular', Charcoal, Arial Black, Gadget, Sans serif;
+    font-weight: normal;
+    line-height: .8;
+    text-transform: uppercase;
+}
+.amp {
+    font-family:Baskerville,'Goudy Old Style',Palatino,'Book Antiqua',serif;
+    font-style:italic;
+    font-weight:lighter;
+}
+</style>
+</head>
+<body>
+<div style="clear: both;width: 1000px; text-align: center;margin-bottom:30px;">
+    <h2>Partial Pre-Slab Demo</h2>
+    ratio: <input type="text" id="ratio" value="1" style="width: 40px;"/>
+</div>
+    <div style="float: left; height: 350px;width: 350px;">
+        <div 
+        <div id="slabwrap">
+            <div class="slabme">
+                He who controls others may be powerful, but he who has mastered himself is mightier still.
+            </div>
+            <div style="text-align: right;margin-top: 20px;">-Lao Tzu</div>
+        </div>
+    </div>
+    <div style="float: left; height: 350px; width: 350px;">
+        <div id="slabwrap2">
+            <div class="slabme">
+                He who controls others may be <span class="slabbedtext">powerful,</span> but he who has mastered himself <span class="slabbedtext">is mightier still.</span>
+            </div>
+            <div style="text-align: right;margin-top: 20px;">-Lao Tzu</div>
+        </div>
+    </div>
+    <div style="float: left; height: 350px; width: 300px;">
+        <div id="slabwrap3">
+            <div class="slabme">
+                He who controls <span class="slabbedtext">others</span> may be powerful, but he who has mastered <span class="slabbedtext">himself</span> is mightier still.
+            </div>
+            <div style="text-align: right;margin-top: 20px;">-Lao Tzu</div>
+        </div>
+    </div>
+
+</body>
+</html>
