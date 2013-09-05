@@ -1,4 +1,4 @@
-/*! jQuery jSlabify plugin v2.0 MIT/GPL2 @gschoppe */
+/*! jQuery jSlabify plugin v2.5 MIT/GPL2 @gschoppe */
 (function( $ ){
     $.fn.jSlabify = function(options) {
         var settings = {
@@ -32,12 +32,16 @@
             "maxFontSize"           : 999,
             // Do we try to tweak the letter-spacing or word-spacing?
             "postTweak"             : true,
-            // what is the minimum wordspacing to allow in pixels?
-            "minWordSpace"          : 3,
+            // what is the minimum wordspacing to allow (ratio to space-width)?
+            "minWordSpace"          : .4,
+            // what is the maximum wordspacing to allow (ratio to space-width)?
+            "maxWordSpace"          : 3,
+            // what is the maximum letterspacing to allow (ratio to space-width)?
+            "maxLetterSpace"        : 1.5,
             // Decimal precision to use when setting CSS values
             "precision"             : 3,
             // The min num of chars a line has to contain
-            "minCharsPerLine"       : 0
+            "minCharsPerLine"       : 2
             };
         
         // Add the slabtexted classname to the body to initiate the styling of
@@ -51,6 +55,7 @@
             var $this               = $(this),
                 keepSpans           = $("span.slabbedtext", $this).length,
                 origFontSize        = null,
+                spaceRatio          = null,
                 idealCharPerLine    = null,
                 words               = String($.trim($this.text())).replace(/\s{2,}/g, " ").split(" "),
                 sections            = [],
@@ -67,34 +72,38 @@
                 viewportBreakpoint  = settings.viewportBreakpoint,
                 postTweak           = settings.postTweak,
                 minWordSpace        = settings.minWordSpace,
+                maxWordSpace        = settings.maxWordSpace,
+                maxLetterSpace      = settings.maxLetterSpace,
                 precision           = settings.precision,
                 resizeThrottleTime  = settings.resizeThrottleTime,
                 minCharsPerLine     = settings.minCharsPerLine,
                 resizeThrottle      = null,
                 viewportWidth       = $(window).width(),
                 headLink            = $this.find("a:first").attr("href") || $this.attr("href"),
-                linkTitle           = headLink ? $this.find("a:first").attr("title") : "";
+                linkTitle           = (headLink) ? $this.find("a:first").attr("title") : "";
             
             if(!keepSpans && minCharsPerLine && words.join(" ").length < minCharsPerLine)
                 return;
             
             if(keepSpans) {  //build array of sections to later slab
-                var div=document.createElement("div"); 	// creates a new temp div that we can mess-up without affecting the page
-                $(div).html($this.html());		        // fills temp div with existing div content
+                var div=document.createElement("div");  // creates a new temp div that we can mess-up without affecting the page
+                $(div).html($this.html());              // fills temp div with existing div content
 
                 var a, 
                     remainder;
-                while(a=div.querySelectorAll("span.slabbedtext")[0]) {	// continues grabbing all span.slabbedtext tags until none are left:
+                while(a=div.querySelectorAll("span.slabbedtext")[0]) {  // continues grabbing all span.slabbedtext tags until none are left:
                     var groupedValue   = $(a).text();
+                    if(settings.wrapAmpersand)
+                                groupedValue = groupedValue.replace(/&/g, "<span class=\"amp\">&amp;</span>");
                     var ungroupedValue = $(a)[0].previousSibling;
-                    ungroupedValue     = (ungroupedValue&&ungroupedValue.nodeValue)?ungroupedValue.nodeValue.replace(/\s{2,}/g, " ").trim():"";
+                    ungroupedValue     = (ungroupedValue&&ungroupedValue.nodeValue) ? ungroupedValue.nodeValue.replace(/\s{2,}/g, " ").trim() : "";
                     remainder          = $(a)[0].nextSibling;
-                    remainder          = (remainder&&remainder.nodeValue)?remainder.nodeValue.replace(/\s{2,}/g, " ").trim():"";
+                    remainder          = (remainder&&remainder.nodeValue) ? remainder.nodeValue.replace(/\s{2,}/g, " ").trim() : "";
                     if(ungroupedValue != "") {
                         sections.push({type: 0, value: ungroupedValue });     // push the other text to the stack
                         ungroupedstring.push(ungroupedValue);
                     }
-                    sections.push({type: 1, value: groupedValue});	          // push the span code to the stack
+                    sections.push({type: 1, value: groupedValue});            // push the span code to the stack
                     $(a).prevAll().remove();
                     $(a).remove();
                 }
@@ -111,14 +120,18 @@
             var grabFontInfo = function() {
                 var theString     = words.join(" "),
                     contentLength = theString.length,
-                    content       = (theString.length > 0)?theString:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-'.,?!&";
-                    dummy         = jQuery('<div style="display:none;font-size:1em;margin:0;padding:0;height:auto;line-height:1;border:0;white-space:nowrap;">'+content+'</div>').appendTo($this),
+                    content       = (theString.length > 0) ? theString : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-'\".,?!&";
+                    divDef        = "<div style=\"display:none;font-size:1em;margin:0;padding:0;height:auto;line-height:"+$this.css("line-height")+";border:0;white-space:nowrap;word-spacing:0;letter-spacing:0;\">",
+                    dummy         = $(divDef+content+"</div>").appendTo($this),
                     emW           = dummy.width(),
                     emH           = dummy.height(),
-                    ratio         = (emH == 0)?1:emW/emH,
-                    charRatio     = ratio/content.length;
+                    ratio         = (emH == 0) ? 1 : emW/emH,
+                    charRatio     = ratio/content.length
+                    dummy2        = $(divDef+"&nbsp;"+"</div>").appendTo($this),
+                    spaceRatio    = dummy2.width()/parseFloat(dummy2.css("font-size"),10);
                 dummy.remove();
-                return [emW, emH, ratio, content.length, charRatio];
+                dummy2.remove();
+                return [emW, emH, ratio, content.length, charRatio, spaceRatio];
             };
             
             // The original slabtype algorithm was written by Eric Loyer:
@@ -128,22 +141,21 @@
             var resizeSlabs = function resizeSlabs() {
                 // Cache the parent containers width       
                 var parentWidth = $this.width(),
-                    parentHeight = (fixedHeight)?$this.height():parentWidth/slabRatio,
+                    parentHeight = (fixedHeight) ? $this.height() : parentWidth/slabRatio,
                     fontInfo,
                     fs;
                 
                 if(vCenter) {
                     $this.height(parentHeight);
                 } else if(!fixedHeight) {
-                    $this.css("height", "auto")
+                    $this.css("height", "auto");
                 }
                 
                 // Remove the slabtextdone and slabtextinactive classnames to enable the inline-block shrink-wrap effect
                 $this.removeClass("slabbedtextdone slabbedtextinactive");
                 
-                if(viewportBreakpoint && viewportBreakpoint > viewportWidth
-                   ||
-                   headerBreakpoint && headerBreakpoint > parentWidth) {
+                if(   viewportBreakpoint && viewportBreakpoint > viewportWidth
+                   || headerBreakpoint   && headerBreakpoint   > parentWidth  ) {
                     // Add the slabtextinactive classname to set the spans as inline
                     // and to reset the font-size to 1em (inherit won't work in IE6/7)
                     $this.addClass("slabbedtextinactive");
@@ -156,9 +168,8 @@
                 // then recalculate the "characters per line" count and re-render the inner spans
                 // Setting "forceNewCharCount" to false will save CPU cycles...
                 if(forceNewCharCount || fs != origFontSize) {
-                            
                     origFontSize = fontInfo[1];
-
+                    spaceRatio   = fontInfo[5];
                     // legacy slabtext support
                     if(targetFont) {
                         var charRatio       = fontInfo[4],
@@ -193,55 +204,51 @@
                             // string always one word behind the other, until
                             // the length of one string is less than the ideal number of characters
                             // per line, while the length of the other is greater than that ideal
-                            while (postText.length < idealCharPerLine) {
+                            while (postText.length <= idealCharPerLine) {
                                 preText   = postText;
                                 postText += sectionWords[wordIndex] + " ";
                                 if(++wordIndex >= sectionWords.length) {
                                     break;
                                 }
                             }
-
-                            // This bit hacks in a minimum characters per line test
-                            // on the last line
-                            if(minCharsPerLine) {
-                                slice = sectionWords.slice(wordIndex).join(" ");
-                                if(slice.length < minCharsPerLine) {
-                                    postText += slice;
-                                    preText = postText;
-                                    wordIndex = sectionWords.length + 2;
-                                }
-                            }
-
+                            preText  = $.trim(preText);
+                            postText = $.trim(postText);
                             // calculate the character difference between the two strings and the
                             // ideal number of characters per line
-                            preDiff  = idealCharPerLine - preText.length;
-                            postDiff = postText.length - idealCharPerLine;
-            
+                            preDiff       = idealCharPerLine - preText.length;
+                            postDiff      = postText.length - idealCharPerLine;
+                            
                             // if the smaller string is closer to the length of the ideal than
-                            // the longer string, and doesn’t contain less than minCharsPerLine
+                            // the longer string, and doesn't contain less than minCharsPerLine
                             // characters, then use that one for the line
-                            if((preDiff < postDiff) && (preText.length >= (minCharsPerLine || 2))) {
+                            if((preDiff < postDiff) && (preText.length >= Math.max(minCharsPerLine || 2))) {
                                 finalText = preText;
                                 wordIndex--;
                             // otherwise, use the longer string for the line
                             } else {
                                 finalText = postText;
                             }
-
+                            // calculate whether it's better to just add the rest now
+                            remainingText = sectionWords.slice(wordIndex).join(" ");
+                            if(remainingText.length > 0 && remainingText.length < idealCharPerLine) {
+                                newLineDiff   = Math.max(((idealCharPerLine - remainingText.length), Math.abs(finalText.length - idealCharPerLine)));
+                                oneLineDiff   = Math.abs(finalText.length + remainingText.length + 1 - idealCharPerLine);
+                                if(oneLineDiff < newLineDiff || remainingText.length < Math.max(minCharsPerLine, 3)) {
+                                    finalText += " " + remainingText;
+                                    wordIndex = sectionWords.length;
+                                }
+                            }
+                            
                             // HTML-escape the text
-                            finalText = $('<div/>').text(finalText).html()
-
+                            finalText = $('<div/>').text(finalText).html();
                             // Wrap ampersands in spans with class `amp` for specific styling
                             if(settings.wrapAmpersand)
-                                finalText = finalText.replace(/&amp;/g, '<span class="amp">&amp;</span>');
-
-                            finalText = $.trim(finalText)
-
-                            lineText.push('<span class="slabbedtext">' + finalText + "</span>");
+                                finalText = finalText.replace(/&amp;/g, "<span class=\"amp\">&amp;</span>");
+                            finalText = $.trim(finalText);
+                            lineText.push("<span class=\"slabbedtext\">" + finalText + "</span>");
                         }
                         return lineText;
                     }
-                    
                     if(!keepSpans) {
                         $this.html(makeSlabSpans(newCharPerLine, words).join(""));
                     }else{
@@ -250,7 +257,7 @@
                         var finalSlabs = [];
                         for(var i = 0; i < sections.length; i++) {
                             if(sections[i].type) {
-                                finalSlabs.push('<span class="slabbedtext">' + sections[i].value + "</span>");
+                                finalSlabs.push("<span class=\"slabbedtext\">" + sections[i].value + "</span>");
                             } else {
                                 var section = String($.trim(sections[i].value));
                                 charPerLine = section.length/Math.max(Math.round(unusedLines * section.length/ungroupedstring.length), 1);
@@ -262,14 +269,12 @@
                     }
                     // If we have a headLink, add it back just inside our target, around all the slabText spans
                     if(headLink)
-                        $this.wrapInner('<a href="' + headLink + '" ' + (linkTitle ? 'title="' + linkTitle + '" ' : '') + '/>');
-                    
+                        $this.wrapInner("<a href=\"" + headLink + "\" " + (linkTitle ? "title=\"" + linkTitle + "\" " : "") + "/>");
                 } else {
                     // We only need the font-size for the resize-to-fit functionality
                     // if not injecting the spans 
                     origFontSize = fontInfo[1];
                 }
-                
                 //create wrapper div for centering, if none exists
                 if(!($this.has("div.innerslabwrap").length>0)) {
                     $this.wrapInner('<div class="innerslabwrap" />');
@@ -281,55 +286,72 @@
                         // the .text method appears as fast as using custom -data attributes in this case
                         innerText   = $span.text(),
                         wordSpacing = innerText.split(" ").length > 1,
-                        diff,
+                        fontSize  = parseFloat($span.css("font-size"),10),
                         ratio,
                         newSize;
-                    
-                    var leaveWordSpace = 0;
                     if(postTweak) {
-                        $span.css({"word-spacing":0, "letter-spacing":0});
-                        var spaceCount = innerText.split(" ").length - 1;
-                        if (spaceCount < 0)
-                            spaceCount = 0;
-                        leaveWordSpace = spaceCount*minWordSpace; 
-                    }
-                    
-                    $span.css("font-size", 1 + "em");
-                    ratio    = parentWidth / ($span.width() + leaveWordSpace);
-                    newSize = (Math.min((origFontSize * ratio), settings.maxFontSize)/origFontSize).toFixed(precision);
-                    $span.css("font-size", newSize + "em");
-                    
-                    // Do we still have space to try to fill or crop
-                    diff = parentWidth - $span.width();
-                    if(diff < 0 )
-                        diff = 0;
-                    // A "dumb" tweak in the blind hope that the browser will
-                    // resize the text to better fit the available space.
-                    // Better "dumb" and fast...
-                    if(postTweak && diff) {
-                        if (wordSpacing) {
-                            var spacing = (diff / (innerText.split(" ").length - 1)).toFixed(precision);
-                            if( spacing < 0 )
-                                spacing = 0;
-                            $span.css('word-spacing', spacing + "px");
+                        if(wordSpacing) {
+                            $span.css({"word-spacing":""+fontSize*spaceRatio*minWordSpace-spaceRatio*fontSize+"px", "letter-spacing":0});
+                            var spaceCount = innerText.split(" ").length - 1;
+                            if (spaceCount < 0)
+                                spaceCount = 0;
                         } else {
-                            var spacing = (diff / innerText.length).toFixed(precision);
-                            if( spacing < 0 )
-                                spacing = 0;
-                            $span.css('letter-spacing', spacing + "px");
+                            $span.css("letter-spacing", 0);
                         }
                     }
+                    $span.css("font-size", 1 + "em");
+                    ratio    = ($span.width() > 0) ? parentWidth / $span.width() : 1;
+                    newSize = (Math.min((origFontSize * ratio), settings.maxFontSize)/origFontSize).toFixed(precision);
+                    $span.css("font-size", newSize + "em");
                 });
                 var newMultiplier = 1;
                 if(constrainHeight && ($inner.height() > parentHeight)) {
                     newMultiplier = (parentHeight / $inner.height()).toFixed(precision);
                     $inner.css("font-size", newMultiplier + "em");
                 }
-                
+                if(postTweak){
+                    $("span.slabbedtext", $this).each(function() {
+                        var $span       = $(this),
+                            innerText = $span.text(),
+                            // should we start with word-spacing?
+                            wordCount = innerText.split(" ").length,
+                            // Do we still have space to try to fill or crop?
+                            diff      = parentWidth - $span.width(),
+                            fontSize  = parseFloat($span.css("font-size"),10);
+                        // A "dumb" tweak in the blind hope that the browser will
+                        // resize the text to better fit the available space.
+                        // Better "dumb" and fast...
+                        if (wordCount > 1) {
+                            var spacing = diff / (wordCount - 1);
+                            if( spacing < fontSize*spaceRatio*minWordSpace ) {
+                                spacing = fontSize*spaceRatio*minWordSpace;
+                            //upper limit on word-spacing
+                            } else if(spacing > fontSize*spaceRatio*maxWordSpace) {
+                                spacing = fontSize*spaceRatio*maxWordSpace;
+                            }
+                            // subtract the number of pixels to zero spacing
+                            spacing = spacing - fontSize*spaceRatio;
+                            $span.css('word-spacing', spacing.toFixed(precision) + "px");
+                            // Do we still have space to try to fill or crop?
+                            diff = parentWidth - $span.width();
+                        }
+                        var spacing = diff / innerText.length;
+                        if( spacing < 0 ) {
+                            spacing = 0;
+                        //upper limit on letter-spacing
+                        } else if(spacing > fontSize*spaceRatio*maxLetterSpace) {
+                            spacing = fontSize*spaceRatio*maxLetterSpace;
+                        }
+                        $span.css('letter-spacing', spacing.toFixed(precision) + "px");
+                        if( (parentWidth - $span.width())/parentWidth > .1 ) {
+                            $span.css('letter-spacing', 0);
+                            $span.css('word-spacing', 0);
+                        }
+                    });
+                }
                 // Add the class slabtextdone to set a display:block on the child spans
                 // and avoid styling & layout issues associated with inline-block
                 $this.addClass("slabbedtextdone");
-                
                 // Apply final centering, if necessary
                 if(hCenter)
                     $inner.css("text-align", 'center');
@@ -337,24 +359,20 @@
                     var topPad = ((parentHeight-$inner.height())/2).toFixed(precision);
                     $inner.css("position", 'relative').css("top", topPad + "px");
                 }
-            }
-
+            };
             // Immediate resize
-            resizeSlabs();     
-                    
+            resizeSlabs();
             if(!settings.noResizeEvent) {
                 $(window).resize(function() {
                     // Only run the resize code if the viewport width has changed.
                     // we ignore the viewport height as it will be constantly changing.
                     if($(window).width() == viewportWidth)
                         return;
-                                    
                     viewportWidth = $(window).width();
-                                    
                     clearTimeout(resizeThrottle);
                     resizeThrottle = setTimeout(resizeSlabs, resizeThrottleTime);
                 });
-            }        
+            }
         });
-    }
+    };
 })(jQuery);

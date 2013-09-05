@@ -193,11 +193,11 @@
   <p>The following demo showcases two versions of the same headline, the first has rows (word combinations) dynamically calculated by the script while the second has rows preset within the markup (and therefore only resized-to-fit by the script).</p>
   <div class="col-1">
     <p>The following word combinations are calculated by the script</p>                
-    <h1>For one night only Jackie Mittoo with special Studio One guests Dillinger <span class="amp">&amp;</span> Lone&nbsp;Ranger</h1>
+    <h1>For one night only Jackie Mittoo with special Studio One guests Dillinger &amp; Lone&nbsp;Ranger</h1>
   </div>
   <div class="col-2">
     <p>The following word combinations are preset within the markup</p>
-    <h1 id="studio-one"><span class="slabbedtext">For one night only</span> <span class="slabbedtext">Jackie Mittoo</span> <span class="slabbedtext">with special Studio One guests</span> <span class="slabbedtext">Dillinger <span class="amp">&amp;</span> Lone Ranger</span></h1>                
+    <h1 id="studio-one"><span class="slabbedtext">For one night only</span> <span class="slabbedtext">Jackie Mittoo</span> <span class="slabbedtext">with special Studio One guests</span> <span class="slabbedtext">Dillinger &amp; Lone Ranger</span></h1>                
   </div>
   <h2 id="h4">Headers containing links</h2>
   <p>If the original header contains a link (or should itself have an href set), the generated spans will be wrapped in a link that uses the same href.</p>
@@ -240,7 +240,11 @@
     <dt>postTweak</dt>
     <dd>A Boolean value that instructs the script to tweak the lineheight or word spacing after the fontsize calculation has been run (TRUE) or not (FALSE). Defaults to TRUE.</dd>
     <dt>minWordSpace</dt>
-    <dd>An Integer value that sets the minimum number of pixels between words, after tweaking. Defaults to 3.</dd>
+    <dd>An Integer value that sets the minimum spacing between words, as a factor of the width of a standard space. Defaults to 0.4.</dd>
+    <dt>maxWordSpace</dt>
+    <dd>An Integer value that sets the maximum spacing between words, as a factor of the width of a standard space. Defaults to 3.</dd>
+    <dt>maxLetterSpace</dt>
+    <dd>An Integer value that sets the maximum spacing between letters, as a factor of the width of a standard space. Defaults to 1.5.</dd>
     <dt>minCharsPerLine</dt>
     <dd>An optional Integer value that indicates the minimum number of characters to set per line. Headlines that have a character count smaller than this value are not given the jSlabified treatment.</dd>
   </dl>
